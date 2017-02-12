@@ -162,7 +162,7 @@ new_test(test_roman_numeral_2) {
   parser parse_roman = and4(parse_xs, parse_vs, parse_is, eof);
 
   return check_parse("XVII", parse_roman, "XVII") && total == 17
-    && check_parse("IV", parse_roman, "IV") && total == 4;
+    && check_parse("IV", parse_roman, "IV") && total == 21;
 }
 
 int main() {
