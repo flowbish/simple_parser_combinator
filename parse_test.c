@@ -102,6 +102,18 @@ new_test(test_and_second_char) {
   return check_parse("test", parser_create_and(parser_create_char('t'), parser_create_char('e')), "te");
 }
 
+new_test(test_many_no_match) {
+  return check_parse("aaabbb", parser_create_many(parser_create_null()), "");
+}
+
+new_test(test_many_single_match) {
+  return check_parse("ab", parser_create_many(parser_create_char('a')), "a");
+}
+
+new_test(test_many_matches) {
+  return check_parse("aaabbb", parser_create_many(parser_create_char('a')), "aaa");
+}
+
 int main() {
   for (int i = 0; i < SET_COUNT(test_case_fn); i++) {
     void *test = SET_ITEM(test_case_fn, i);

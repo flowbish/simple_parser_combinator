@@ -328,6 +328,39 @@ struct parser *parser_create_and(parser left, parser right) {
   return (struct parser *)parser;
 }
 
+/**
+ * Kleene star. Will attempt to match the first parser as many times as
+ * possible.
+ */
+
+struct parser_many {
+  struct parser parser;
+  parser target;
+};
+
+bool parser_run_many(const struct parser *p, struct parse_state *state, char **o) {
+  state_success_blank(state, o);
+  bool success = true;
+  parser target = ((struct parser_many *)p)->target;
+  do {
+    success = parser_run(target, state, o);
+  } while (success == true);
+  return true;
+}
+
+void parser_free_many(parser p) {
+  parser_free(((struct parser_many *)p)->target);
+  parser_free_default(p);
+}
+
+struct parser *parser_create_many(parser target) {
+  struct parser_many *parser = malloc(sizeof(struct parser_many));
+  parser->parser.free = parser_free_many;
+  parser->parser.run = parser_run_many;
+  parser->target = target;
+  return (struct parser *)parser;
+}
+
 bool run(parser p, const char *input, char **output) {
   struct parse_state state;
   state_create(&state, input);
