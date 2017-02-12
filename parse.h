@@ -16,4 +16,5 @@ parser parser_create_null();
 parser parser_create_char(char c);
 parser parser_create_str(char *str);
 parser parser_create_or(parser left, parser right);
+parser parser_create_and(parser left, parser right);
 

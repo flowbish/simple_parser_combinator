@@ -243,11 +243,11 @@ struct parser *parser_create_str(char *str) {
 }
 
 /**
- * Union of parsers. Will attempt to execute the give parsers, in order,
+ * Union of parsers. Will attempt to execute the given parsers in order,
  * succeeding if either succeed.
  */
 
-struct parser_or {
+struct parser_and_or {
   struct parser parser;
   parser left;
   parser right;
@@ -256,14 +256,14 @@ struct parser_or {
 bool parser_run_or(const struct parser *p, struct parse_state *state, char **o) {
   struct parse_state state_save = *state;
   char *o_save = output_string_save(o);
-  bool left = parser_run(((struct parser_or *)p)->left, state, o);
+  bool left = parser_run(((struct parser_and_or *)p)->left, state, o);
   if (left) {
     free(o_save);
     return true;
   }
   *state = state_save;
   output_string_replace(o_save, o);
-  bool right = parser_run(((struct parser_or *)p)->right, state, o);
+  bool right = parser_run(((struct parser_and_or *)p)->right, state, o);
   if (right) {
     free(o_save);
     return true;
@@ -275,15 +275,54 @@ bool parser_run_or(const struct parser *p, struct parse_state *state, char **o) 
 }
 
 void parser_free_or(parser p) {
-  parser_free(((struct parser_or *)p)->left);
-  parser_free(((struct parser_or *)p)->right);
+  parser_free(((struct parser_and_or *)p)->left);
+  parser_free(((struct parser_and_or *)p)->right);
   parser_free_default(p);
 }
 
 struct parser *parser_create_or(parser left, parser right) {
-  struct parser_or *parser = malloc(sizeof(struct parser_or));
+  struct parser_and_or *parser = malloc(sizeof(struct parser_and_or));
   parser->parser.free = parser_free_or;
   parser->parser.run = parser_run_or;
+  parser->left = left;
+  parser->right = right;
+  return (struct parser *)parser;
+}
+
+/**
+ * Concatenation of parser. Will attempt to execute the given parses in order,
+ * succeeding only if both succeed.
+ */
+
+bool parser_run_and(const struct parser *p, struct parse_state *state, char **o) {
+  struct parse_state state_save = *state;
+  char *o_save = output_string_save(o);
+  bool left = parser_run(((struct parser_and_or *)p)->left, state, o);
+  if (!left) {
+    *state = state_save;
+    output_string_replace(o_save, o);
+    free(o_save);
+    return false;
+  }
+  bool right = parser_run(((struct parser_and_or *)p)->right, state, o);
+  if (!right) {
+    *state = state_save;
+    output_string_replace(o_save, o);
+    free(o_save);
+    return false;
+  }
+  free(o_save);
+  return true;
+}
+
+void parser_free_and(parser p) {
+  parser_free_or(p);
+}
+
+struct parser *parser_create_and(parser left, parser right) {
+  struct parser_and_or *parser = malloc(sizeof(struct parser_and_or));
+  parser->parser.free = parser_free_and;
+  parser->parser.run = parser_run_and;
   parser->left = left;
   parser->right = right;
   return (struct parser *)parser;

@@ -43,6 +43,7 @@ bool check_parse(const char *input, parser p, const char *expected) {
     return false;
   } else if (success && expected == NULL) {
     error("Parser matched erroneously.");
+    error("Found: %s", output);
     return false;
   } else if (expected != NULL && strcmp(expected, output) != 0) {
     error("Parser failed to parse correctly:");
@@ -87,6 +88,18 @@ new_test(test_or_second) {
 
 new_test(test_or_string) {
   return check_parse("that or this", parser_create_or(parser_create_str("this"), parser_create_str("that")), "that");
+}
+
+new_test(test_and_first_fail) {
+  return check_parse("test", parser_create_and(parser_create_null(), parser_create_blank()), NULL);
+}
+
+new_test(test_and_second_fail) {
+  return check_parse("test", parser_create_and(parser_create_blank(), parser_create_null()), NULL);
+}
+
+new_test(test_and_second_char) {
+  return check_parse("test", parser_create_and(parser_create_char('t'), parser_create_char('e')), "te");
 }
 
 int main() {
