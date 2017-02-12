@@ -23,10 +23,13 @@ parser parser_create_char(char c);
 parser parser_create_str(char *str);
 #define many parser_create_many
 parser parser_create_many(parser target);
-#define exe parser_create_execute
-parser parser_create_execute(parser target, bool (*handle)(char *, void *), void *extra);
+#define try parser_create_try
+parser parser_create_try(parser target);
 
 #define or parser_create_or
 parser parser_create_or(parser left, parser right);
 #define and parser_create_and
 parser parser_create_and(parser left, parser right);
+
+#define exe parser_create_execute
+parser parser_create_execute(parser target, bool (*handle)(char *, void *), void *extra);

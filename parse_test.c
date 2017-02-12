@@ -94,8 +94,8 @@ new_test(test_or_second) {
   return check_parse("test", parser_create_or(parser_create_null(), parser_create_blank()), "");
 }
 
-new_test(test_or_string) {
-  return check_parse("that or this", parser_create_or(parser_create_str("this"), parser_create_str("that")), "that");
+new_test(test_try_or_string) {
+  return check_parse("that", parser_create_or(try(parser_create_str("this")), parser_create_str("that")), "that");
 }
 
 new_test(test_and_first_fail) {

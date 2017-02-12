@@ -245,14 +245,9 @@ struct parser_str {
 
 bool parser_run_str(const struct parser *p, struct parse_state *state, char **o) {
   char *str = ((struct parser_str *)p)->str;
-  struct parse_state state_save = *state;
-  char *o_save = output_string_save(o);
   char cur;
   while (*str && state_getc(state, &cur)) {
     if (cur != *(str++)) {
-      *state = state_save;
-      output_string_replace(o_save, o);
-      free(o_save);
       return false;
     }
     state_success(state, cur, o);
@@ -285,23 +280,14 @@ struct parser_and_or {
 };
 
 bool parser_run_or(const struct parser *p, struct parse_state *state, char **o) {
-  struct parse_state state_save = *state;
-  char *o_save = output_string_save(o);
   bool left = parser_run(((struct parser_and_or *)p)->left, state, o);
   if (left) {
-    free(o_save);
     return true;
   }
-  *state = state_save;
-  output_string_replace(o_save, o);
   bool right = parser_run(((struct parser_and_or *)p)->right, state, o);
   if (right) {
-    free(o_save);
     return true;
   }
-  *state = state_save;
-  output_string_replace(o_save, o);
-  free(o_save);
   return false;
 }
 
@@ -326,23 +312,14 @@ struct parser *parser_create_or(parser left, parser right) {
  */
 
 bool parser_run_and(const struct parser *p, struct parse_state *state, char **o) {
-  struct parse_state state_save = *state;
-  char *o_save = output_string_save(o);
   bool left = parser_run(((struct parser_and_or *)p)->left, state, o);
   if (!left) {
-    *state = state_save;
-    output_string_replace(o_save, o);
-    free(o_save);
     return false;
   }
   bool right = parser_run(((struct parser_and_or *)p)->right, state, o);
   if (!right) {
-    *state = state_save;
-    output_string_replace(o_save, o);
-    free(o_save);
     return false;
   }
-  free(o_save);
   return true;
 }
 
@@ -388,6 +365,40 @@ struct parser *parser_create_many(parser target) {
   struct parser_many *parser = malloc(sizeof(struct parser_many));
   parser->parser.free = parser_free_many;
   parser->parser.run = parser_run_many;
+  parser->target = target;
+  return (struct parser *)parser;
+}
+
+/**
+ * Try to apply a given parser, rolling back input if a parsing error occurs.
+ */
+
+struct parser_try {
+  struct parser parser;
+  parser target;
+};
+
+bool parser_run_try(const struct parser *p, struct parse_state *state, char **o) {
+  struct parse_state state_save = *state;
+  char *o_save = output_string_save(o);
+  bool success = parser_run(((struct parser_try *)p)->target, state, o);
+  if (!success) {
+    *state = state_save;
+    output_string_replace(o_save, o);
+  }
+  free(o_save);
+  return success;
+}
+
+void parser_free_try(parser p) {
+  parser_free(((struct parser_try *)p)->target);
+  parser_free_default(p);
+}
+
+struct parser *parser_create_try(parser target) {
+  struct parser_try *parser = malloc(sizeof(struct parser_try));
+  parser->parser.free = parser_free_try;
+  parser->parser.run = parser_run_try;
   parser->target = target;
   return (struct parser *)parser;
 }
