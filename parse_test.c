@@ -137,12 +137,32 @@ bool parsed_i(char *is, void *total) {
   return true;
 }
 
+bool parsed_iv(char *iv, void *total) {
+  (void)iv;
+  *(int *)total += 4;
+  return true;
+}
+
 new_test(test_roman_numeral) {
   int total = 0;
-  return check_parse("XVII", and(and(exe(many(ch('X')), parsed_x, &total),
-                                     and(exe(many(ch('V')), parsed_v, &total),
-                                         exe(many(ch('I')), parsed_i, &total))), eof), "XVII")
+  return check_parse("XVII", and4(exe(many(ch('X')), parsed_x, &total),
+                                  exe(many(ch('V')), parsed_v, &total),
+                                  exe(many(ch('I')), parsed_i, &total),
+                                  eof), "XVII")
     && total == 17;
+}
+
+new_test(test_roman_numeral_2) {
+  int total = 0;
+
+  parser parse_is = or(try(exe(str("IV"), parsed_iv, &total)),
+                       exe(many(ch('I')), parsed_i, &total));
+  parser parse_xs = exe(many(ch('X')), parsed_x, &total);
+  parser parse_vs = exe(many(ch('V')), parsed_v, &total);
+  parser parse_roman = and4(parse_xs, parse_vs, parse_is, eof);
+
+  return check_parse("XVII", parse_roman, "XVII") && total == 17
+    && check_parse("IV", parse_roman, "IV") && total == 4;
 }
 
 int main() {

@@ -26,8 +26,17 @@ parser parser_create_many(parser target);
 #define try parser_create_try
 parser parser_create_try(parser target);
 
+#define or5(p, ...) or(p, or4(__VA_ARGS__))
+#define or4(p, ...) or(p, or3(__VA_ARGS__))
+#define or3(p, ...) or(p, or2(__VA_ARGS__))
+#define or2(p, q) or(p, q)
 #define or parser_create_or
 parser parser_create_or(parser left, parser right);
+
+#define and5(p, ...) and(p, and4(__VA_ARGS__))
+#define and4(p, ...) and(p, and3(__VA_ARGS__))
+#define and3(p, ...) and(p, and2(__VA_ARGS__))
+#define and2(p, q) and(p, q)
 #define and parser_create_and
 parser parser_create_and(parser left, parser right);
 

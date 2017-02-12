@@ -385,8 +385,9 @@ bool parser_run_try(const struct parser *p, struct parse_state *state, char **o)
   if (!success) {
     *state = state_save;
     output_string_replace(o_save, o);
+  } else {
+    free(o_save);
   }
-  free(o_save);
   return success;
 }
 
