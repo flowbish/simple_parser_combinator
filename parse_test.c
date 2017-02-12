@@ -122,8 +122,27 @@ new_test(test_many_matches) {
   return check_parse("aaabbb", parser_create_many(parser_create_char('a')), "aaa");
 }
 
+bool parsed_x(char *xs, void *total) {
+  *(int *)total += 10 * strlen(xs);
+  return true;
+}
+
+bool parsed_v(char *vs, void *total) {
+  *(int *)total += 5 * strlen(vs);
+  return true;
+}
+
+bool parsed_i(char *is, void *total) {
+  *(int *)total += strlen(is);
+  return true;
+}
+
 new_test(test_roman_numeral) {
-  return check_parse("XVII", and(and(many(ch('X')), and(many(ch('V')), many(ch('I')))), eof), "XVII");
+  int total = 0;
+  return check_parse("XVII", and(and(exe(many(ch('X')), parsed_x, &total),
+                                     and(exe(many(ch('V')), parsed_v, &total),
+                                         exe(many(ch('I')), parsed_i, &total))), eof), "XVII")
+    && total == 17;
 }
 
 int main() {
