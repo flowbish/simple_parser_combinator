@@ -289,22 +289,6 @@ struct parser *parser_create_or(parser left, parser right) {
   return (struct parser *)parser;
 }
 
-
-/**
- * Collect until the specifed character is seen.
- */
-bool parse_until(struct parse_state *state, char terminator, char **o) {
-  char c;
-  while (state_getc(state, &c)) {
-    if (c == terminator) {
-      state_rewind(state);
-      return true;
-    }
-    state_success(state, c, o);
-  }
-  return true;
-}
-
 bool run(parser p, const char *input, char **output) {
   struct parse_state state;
   state_create(&state, input);
