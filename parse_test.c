@@ -62,6 +62,14 @@ new_test(test_null) {
   return check_parse("", parser_create_null(), NULL);
 }
 
+new_test(test_eof_pass) {
+  return check_parse("", parser_create_eof(), "");
+}
+
+new_test(test_eof_fail) {
+  return check_parse("a", parser_create_eof(), NULL);
+}
+
 new_test(test_char) {
   return check_parse("test", parser_create_char('t'), "t");
 }
@@ -112,6 +120,10 @@ new_test(test_many_single_match) {
 
 new_test(test_many_matches) {
   return check_parse("aaabbb", parser_create_many(parser_create_char('a')), "aaa");
+}
+
+new_test(test_roman_numeral) {
+  return check_parse("XVII", and(and(many(ch('X')), and(many(ch('V')), many(ch('I')))), eof), "XVII");
 }
 
 int main() {

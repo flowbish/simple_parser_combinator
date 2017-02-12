@@ -178,6 +178,27 @@ struct parser *parser_create_null() {
 }
 
 /**
+ * EOF parser, will only pass if EOF.
+ */
+
+bool parser_run_eof(const struct parser *p, struct parse_state *state, char **o) {
+  (void)p;
+  (void)o;
+  if (state_finished(state)) {
+    state_success_blank(state, o);
+    return true;
+  }
+  return false;
+}
+
+struct parser *parser_create_eof() {
+  struct parser *parser = malloc(sizeof(struct parser));
+  parser->free = parser_free_default;
+  parser->run = parser_run_eof;
+  return (struct parser *)parser;
+}
+
+/**
  * Single character parser. Will attmept to parse a single, specified character
  * from the input.
  */
