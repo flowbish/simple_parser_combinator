@@ -30,8 +30,6 @@ SET_DECLARE(test_case_name, char*);
     if (!success) {                                 \
       error("Test \"%s\" failed, aborting.", name); \
       return 1;                                     \
-    } else {                                        \
-      info("Test \"%s\" succeeded.", name);         \
     }                                               \
   } while (0)
 
@@ -45,7 +43,7 @@ bool check_parse(const char *input, parser p, const char *expected) {
     error("Parser matched erroneously.");
     error("Found: %s", output);
     return false;
-  } else if (expected != NULL && strcmp(expected, output) != 0) {
+  } else if (success && expected != NULL && strcmp(expected, output) != 0) {
     error("Parser failed to parse correctly:");
     error("Found: %s", output);
     error("Expected: %s", expected);
@@ -122,6 +120,25 @@ new_test(test_many_matches) {
   return check_parse("aaabbb", parser_create_many(parser_create_char('a')), "aaa");
 }
 
+bool set_int(char *x, void *total) {
+  *(int *)total += strlen(x);
+  return true;
+}
+
+new_test(test_exe_pass) {
+  int total = 0;
+  parser parse_set = or(try(and(exe(ch('a'), set_int, &total), ch('b'))), (ch('a')));
+  return check_parse("ab", parse_set, "ab") && total == 1;
+}
+
+new_test(test_exe_fail) {
+  int total = 0;
+  parser parse_set = or(try(and(exe(ch('a'), set_int, &total),
+                                ch('b'))),
+                        (ch('a')));
+  return check_parse("a", parse_set, "a") && total == 0;
+}
+
 bool parsed_x(char *xs, void *total) {
   *(int *)total += 10 * strlen(xs);
   return true;
@@ -155,21 +172,92 @@ new_test(test_roman_numeral) {
 new_test(test_roman_numeral_2) {
   int total = 0;
 
-  parser parse_is = or(try(exe(str("IV"), parsed_iv, &total)),
-                       exe(many(ch('I')), parsed_i, &total));
   parser parse_xs = exe(many(ch('X')), parsed_x, &total);
   parser parse_vs = exe(many(ch('V')), parsed_v, &total);
+  parser parse_is = or(try(exe(str("IV"), parsed_iv, &total)),
+                       exe(many(ch('I')), parsed_i, &total));
   parser parse_roman = and4(parse_xs, parse_vs, parse_is, eof);
 
   return check_parse("XVII", parse_roman, "XVII") && total == 17
     && check_parse("IV", parse_roman, "IV") && total == 21;
 }
 
-int main() {
-  for (int i = 0; i < SET_COUNT(test_case_fn); i++) {
-    void *test = SET_ITEM(test_case_fn, i);
-    char **name = SET_ITEM(test_case_name, i);
-    run_test(*name, (bool (*)(void))test);
+int value(char c) {
+  switch(c) {
+  case 'I':
+    return 1;
+  case 'V':
+    return 5;
+  case 'X':
+    return 10;
+  case 'L':
+    return 50;
+  case 'C':
+    return 100;
+  case 'D':
+    return 500;
+  case 'M':
+    return 1000;
+  default:
+    return -1;
   }
+}
+
+/* bool add_value(char *letter, void *total) { */
+/*   *(int *)total += value(*letter); */
+/* } */
+
+/* bool set_value(char *letter, void *total) { */
+/*   *(int *)total -= value(*letter); */
+/* } */
+
+/* struct pair { */
+/*   int first; */
+/*   int second; */
+/* } */
+
+/* parser pair(char a, char b, void *total) { */
+/*   return and(ch(a), ch(b)) */
+/* } */
+
+bool parsed_single(char *letter, void *total) {
+  *(int *)total += value(*letter) * strlen(letter);
+  return true;
+}
+
+parser single(char a, int *total) {
+  return exe(many(ch(a)), parsed_single, total);
+}
+
+new_test(test_roman_numeral_3) {
+  int total = 0;
+  parser parse_m = single('M', &total);
+  parser parse_d = single('D', &total);
+  parser parse_c = single('C', &total);
+  parser parse_l = single('L', &total);
+  parser parse_x = single('X', &total);
+  parser parse_v = single('V', &total);
+  parser parse_i = single('I', &total);
+  parser parse_roman = and8(parse_m, parse_d, parse_c, parse_l, parse_x,
+                            parse_v, parse_i, eof);
+  return check_parse("MCLXVII", parse_roman, "MCLXVII") && total == 1167;
+}
+
+int main() {
+  size_t total = SET_COUNT(test_case_fn), pass = 0, fail = 0;
+  info("Running %zu tests.", total);
+  for (int i = 0; i < SET_COUNT(test_case_fn); i++) {
+    bool (*test)(void) = (bool (*)(void))SET_ITEM(test_case_fn, i);
+    char **name = SET_ITEM(test_case_name, i);
+    bool success = test();
+    if (success) {
+      pass += 1;
+    } else {
+      error("Test \"%s\" failed.", *name);
+      fail += 1;
+    }
+  }
+
+  info("%zu passes, %zu failures", pass, fail);
   return 0;
 }

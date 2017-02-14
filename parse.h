@@ -33,6 +33,9 @@ parser parser_create_try(parser target);
 #define or parser_create_or
 parser parser_create_or(parser left, parser right);
 
+#define and8(p, ...) and(p, and7(__VA_ARGS__))
+#define and7(p, ...) and(p, and6(__VA_ARGS__))
+#define and6(p, ...) and(p, and5(__VA_ARGS__))
 #define and5(p, ...) and(p, and4(__VA_ARGS__))
 #define and4(p, ...) and(p, and3(__VA_ARGS__))
 #define and3(p, ...) and(p, and2(__VA_ARGS__))
