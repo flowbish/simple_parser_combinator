@@ -53,71 +53,91 @@ bool check_parse(const char *input, parser p, const char *expected) {
 }
 
 new_test(test_blank) {
-  return check_parse("", parser_create_blank(), "");
+  return check_parse("", blank, "");
+}
+
+new_test(test_blank_with_input) {
+  return check_parse("test", blank, "");
 }
 
 new_test(test_null) {
-  return check_parse("", parser_create_null(), NULL);
+  return check_parse("", null, NULL);
 }
 
 new_test(test_eof_pass) {
-  return check_parse("", parser_create_eof(), "");
+  return check_parse("", eof, "");
 }
 
 new_test(test_eof_fail) {
-  return check_parse("a", parser_create_eof(), NULL);
+  return check_parse("a", eof, NULL);
 }
 
 new_test(test_char) {
-  return check_parse("test", parser_create_char('t'), "t");
+  return check_parse("test", ch('t'), "t");
 }
 
 new_test(test_str_full) {
-  return check_parse("test", parser_create_str("test"), "test");
+  return check_parse("test", str("test"), "test");
 }
 
 new_test(test_str_partial) {
-  return check_parse("testing", parser_create_str("test"), "test");
+  return check_parse("testing", str("test"), "test");
 }
 
 new_test(test_str_fail) {
-  return check_parse("test", parser_create_str("something"), NULL);
+  return check_parse("test", str("something"), NULL);
 }
 
 new_test(test_or_first) {
-  return check_parse("test", parser_create_or(parser_create_blank(), parser_create_null()), "");
+  return check_parse("test", or(blank, null), "");
 }
 
 new_test(test_or_second) {
-  return check_parse("test", parser_create_or(parser_create_null(), parser_create_blank()), "");
+  return check_parse("test", or(null, blank), "");
 }
 
+/*
+ * We should see that the first parser in the or(), str("this"), consumes input
+ * until it fails, at which point the next parser, str("that"), picks up where
+ * it left off. This means that the first few letters in common must be repeated
+ * for this to parse successful. This is why wrapping the first term in a try()
+ * is reccommended.
+ */
+new_test(test_or_string) {
+  return check_parse("ththat", or(str("this"), str("that")), "ththat");
+}
+
+/*
+ * As explained above, if the first term is wrapped in try(), then our parse
+ * behaves exactly as we expect, with both branches of the or starting from the
+ * same character regardless of whether the first consumed any input.
+ */
 new_test(test_try_or_string) {
-  return check_parse("that", parser_create_or(try(parser_create_str("this")), parser_create_str("that")), "that");
+  return check_parse("that", or(try(str("this")), str("that")), "that");
 }
 
 new_test(test_and_first_fail) {
-  return check_parse("test", parser_create_and(parser_create_null(), parser_create_blank()), NULL);
+  return check_parse("test", and(null, blank), NULL);
 }
 
 new_test(test_and_second_fail) {
-  return check_parse("test", parser_create_and(parser_create_blank(), parser_create_null()), NULL);
+  return check_parse("test", and(blank, null), NULL);
 }
 
 new_test(test_and_second_char) {
-  return check_parse("test", parser_create_and(parser_create_char('t'), parser_create_char('e')), "te");
+  return check_parse("test", and(ch('t'), ch('e')), "te");
 }
 
 new_test(test_many_no_match) {
-  return check_parse("aaabbb", parser_create_many(parser_create_null()), "");
+  return check_parse("aaabbb", many(null), "");
 }
 
 new_test(test_many_single_match) {
-  return check_parse("ab", parser_create_many(parser_create_char('a')), "a");
+  return check_parse("ab", many(ch('a')), "a");
 }
 
 new_test(test_many_matches) {
-  return check_parse("aaabbb", parser_create_many(parser_create_char('a')), "aaa");
+  return check_parse("aaabbb", many(ch('a')), "aaa");
 }
 
 bool set_int(char *x, void *total) {
