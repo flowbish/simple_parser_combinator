@@ -229,7 +229,6 @@ int value(char c) {
 
 bool add_value(char *letter, void *total) {
   *(size_t *)total += value(*letter);
-  info("adding %d total %zu", value(*letter), *(size_t *)total);
   return true;
 }
 
@@ -268,6 +267,11 @@ parser roman_numeral(size_t *total) {
 new_test(test_roman_numeral_3) {
   size_t total = 0;
   return check_parse("XCII", roman_numeral(&total), "XCII") && total == 92;
+}
+
+new_test(test_roman_numeral_4) {
+  size_t total = 0;
+  return check_parse("MDCCXCVII", roman_numeral(&total), "MDCCXCVII") && total == 1797;
 }
 
 bool test_should_run(char *test_name, char **valid_names, size_t num_valid_names) {
