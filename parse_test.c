@@ -238,11 +238,6 @@ bool sub_value(char *letter, void *total) {
   return true;
 }
 
-struct pair {
-  int first;
-  int second;
-};
-
 parser pair(char a, char b, void *total) {
   return and(exe(ch(a), sub_value, total),
              exe(ch(b), add_value, total));
