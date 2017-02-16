@@ -6,16 +6,25 @@
 
 #include "parse.h"
 
+#ifdef DEBUG
 #define debug(string, ...) fprintf (stderr, "[DEBUG] "string "\n", ##__VA_ARGS__)
+#else
+#define debug(...)
+#endif
 
 struct parse_state {
   const char *input;
   size_t input_len;
   size_t pos;
+  char *output;
+  size_t num_outputs;
+  bool (**handlers)(char *, void *);
+  char **strings;
+  void **args;
 };
 
 struct parser {
-  bool (*run)(const struct parser*, struct parse_state*, char **o);
+  bool (*run)(const struct parser*, struct parse_state*);
   void (*free)(struct parser*);
 };
 
@@ -33,9 +42,55 @@ bool state_getc(struct parse_state *state, char *c) {
 }
 
 void state_create(struct parse_state *state, const char *input) {
+  memset(state, 0, sizeof(struct parse_state));
   state->input = input;
   state->input_len = strlen(input);
   state->pos = 0;
+}
+
+void state_copy(struct parse_state *dest, struct parse_state *src) {
+  dest->input = src->input;
+  dest->input_len = src->input_len;
+  dest->pos = src->pos;
+  dest->num_outputs = src->num_outputs;
+  if (src->output) {
+    dest->output = malloc(strlen(src->output) + 1);
+    strcpy(dest->output, src->output);
+  } else {
+    dest->output = NULL;
+  }
+  dest->strings = malloc(src->num_outputs * sizeof(char *));
+  for (size_t i = 0; i < src->num_outputs; i += 1) {
+    if (src->strings[i]) {
+      dest->strings[i] = malloc(strlen(src->strings[i]) + 1);
+      strcpy(dest->strings[i], src->strings[i]);
+    } else {
+      dest->strings[i] = NULL;
+    }
+  }
+  dest->args = malloc(src->num_outputs * sizeof(void *));
+  memcpy(dest->args, src->args, src->num_outputs * sizeof(void *));
+  dest->handlers = malloc(src->num_outputs * sizeof(bool (*)(char *, void *)));
+  memcpy(dest->handlers, src->handlers, src->num_outputs * sizeof(bool (*)(char *, void *)));
+}
+
+void state_destroy(struct parse_state *target) {
+  free(target->output);
+  for (size_t i = 0; i < target->num_outputs; i += 1) {
+    free(target->strings[i]);
+  }
+  free(target->handlers);
+  free(target->strings);
+  free(target->args);
+}
+
+bool state_execute(struct parse_state *state) {
+  bool success = true;
+  for (size_t i = 0; i < state->num_outputs; i += 1) {
+    debug("executing handler for '%s'", state->strings[i]);
+    success = success && (*state->handlers[i])(state->strings[i], state->args[i]);
+  }
+  return success;
 }
 
 bool state_finished(struct parse_state *state) {
@@ -91,7 +146,7 @@ bool output_string_append_char(char **o, char c) {
 }
 
 bool output_string_append_str(char **o, char *s) {
-  if (o == NULL) {
+  if (o == NULL || s == NULL) {
     return false;
   } else {
     *o = realloc(*o, strlen(*o) + strlen(s) + 1);
@@ -110,36 +165,50 @@ bool output_string_replace(char *new, char **o) {
   }
 }
 
-char *output_string_save(char **o) {
-  if (o == NULL || *o == NULL)
-    return NULL;
-  return strdup(*o);
-}
-
-bool state_success(struct parse_state *state, char c, char **o) {
-  if (o != NULL) {
-    if (*o == NULL) {
-      output_string_create(o);
-    }
-    output_string_append_char(o, c);
+bool state_success(struct parse_state *state, char c) {
+  if (state->output == NULL) {
+    output_string_create(&state->output);
   }
+  output_string_append_char(&state->output, c);
   state->pos += 1;
   return true;
 }
 
-bool state_success_blank(struct parse_state *state, char **o) {
-  (void)state;
-  if (*o == NULL) {
-    output_string_create(o);
+bool state_success_blank(struct parse_state *state) {
+  if (state->output == NULL) {
+    output_string_create(&state->output);
   }
+  return true;
+}
+
+bool state_output_append_str(struct parse_state *state, char *str) {
+  if (state->output == NULL) {
+    output_string_create(&state->output);
+  }
+  return output_string_append_str(&state->output, str);
+}
+
+bool state_add_handler(struct parse_state *state, bool (*handler)(char *, void *), char *string, void *arg) {
+  state->num_outputs += 1;
+
+  debug("added handler for '%s' index %zu", string, state->num_outputs - 1);
+  state->strings = realloc(state->strings, (state->num_outputs) * sizeof(char *) );
+  state->strings[state->num_outputs - 1] = malloc(strlen(string) + 1);
+  strcpy(state->strings[state->num_outputs - 1], string);
+
+  state->args = realloc(state->args, (state->num_outputs) * sizeof(void *));
+  state->args[state->num_outputs - 1] = arg;
+
+  state->handlers = realloc(state->handlers, (state->num_outputs) * sizeof(bool (*)(char *, void *)));
+  state->handlers[state->num_outputs - 1] = handler;
   return true;
 }
 
 /**
  * Generic interface to executing a parser.
  */
-bool parser_run(const struct parser *p, struct parse_state *state, char **o) {
-  return (p->run)(p, state, o);
+bool parser_run(const struct parser *p, struct parse_state *state) {
+  return (p->run)(p, state);
 }
 
 /**
@@ -157,10 +226,9 @@ void parser_free_default(parser p) {
  * Default parser run method, consumes no input and doesn't fail.
  */
 
-bool parser_run_default(const struct parser *p, struct parse_state *state, char **o) {
+bool parser_run_default(const struct parser *p, struct parse_state *state) {
   (void)p;
   (void)state;
-  (void)o;
   return true;
 }
 
@@ -177,9 +245,9 @@ struct parser_blank {
   struct parser parser;
 };
 
-bool parser_run_blank(const struct parser *p, struct parse_state *state, char **o) {
+bool parser_run_blank(const struct parser *p, struct parse_state *state) {
   (void)p;
-  return state_success_blank(state, o);
+  return state_success_blank(state);
 }
 
 struct parser *parser_create_blank() {
@@ -197,10 +265,9 @@ struct parser_null {
   struct parser parser;
 };
 
-bool parser_run_null(const struct parser *p, struct parse_state *state, char **o) {
+bool parser_run_null(const struct parser *p, struct parse_state *state) {
   (void)p;
   (void)state;
-  (void)o;
   return false;
 }
 
@@ -219,11 +286,10 @@ struct parser_eof {
   struct parser parser;
 };
 
-bool parser_run_eof(const struct parser *p, struct parse_state *state, char **o) {
+bool parser_run_eof(const struct parser *p, struct parse_state *state) {
   (void)p;
-  (void)o;
   if (state_finished(state)) {
-    state_success_blank(state, o);
+    state_success_blank(state);
     return true;
   }
   return false;
@@ -246,10 +312,10 @@ struct parser_char {
   char c;
 };
 
-bool parser_run_char(const struct parser *p, struct parse_state *state, char **o) {
+bool parser_run_char(const struct parser *p, struct parse_state *state) {
   char b, c = ((struct parser_char *)p)->c;
   if (state_getc(state, &b) && b == c) {
-    return state_success(state, b, o);
+    return state_success(state, b);
   }
   return state_rewind(state);
 }
@@ -271,14 +337,14 @@ struct parser_str {
   char *str;
 };
 
-bool parser_run_str(const struct parser *p, struct parse_state *state, char **o) {
+bool parser_run_str(const struct parser *p, struct parse_state *state) {
   char *str = ((struct parser_str *)p)->str;
   char cur;
   while (*str && state_getc(state, &cur)) {
     if (cur != *(str++)) {
-      return false;
+      return state_rewind(state);
     }
-    state_success(state, cur, o);
+    state_success(state, cur);
   }
   return true;
 }
@@ -308,12 +374,12 @@ struct parser_or {
   parser second;
 };
 
-bool parser_run_or(const struct parser *p, struct parse_state *state, char **o) {
-  bool first = parser_run(((struct parser_or *)p)->first, state, o);
+bool parser_run_or(const struct parser *p, struct parse_state *state) {
+  bool first = parser_run(((struct parser_or *)p)->first, state);
   if (first) {
     return true;
   }
-  bool second = parser_run(((struct parser_or *)p)->second, state, o);
+  bool second = parser_run(((struct parser_or *)p)->second, state);
   if (second) {
     return true;
   }
@@ -347,12 +413,12 @@ struct parser_and {
   parser second;
 };
 
-bool parser_run_and(const struct parser *p, struct parse_state *state, char **o) {
-  bool first = parser_run(((struct parser_and *)p)->first, state, o);
+bool parser_run_and(const struct parser *p, struct parse_state *state) {
+  bool first = parser_run(((struct parser_and *)p)->first, state);
   if (!first) {
     return false;
   }
-  bool second = parser_run(((struct parser_and *)p)->second, state, o);
+  bool second = parser_run(((struct parser_and *)p)->second, state);
   if (!second) {
     return false;
   }
@@ -385,12 +451,12 @@ struct parser_many {
   parser target;
 };
 
-bool parser_run_many(const struct parser *p, struct parse_state *state, char **o) {
-  state_success_blank(state, o);
+bool parser_run_many(const struct parser *p, struct parse_state *state) {
+  state_success_blank(state);
   bool success = true;
   parser target = ((struct parser_many *)p)->target;
   do {
-    success = parser_run(target, state, o);
+    success = parser_run(target, state);
   } while (success == true);
   return true;
 }
@@ -418,15 +484,15 @@ struct parser_try {
   parser target;
 };
 
-bool parser_run_try(const struct parser *p, struct parse_state *state, char **o) {
-  struct parse_state state_save = *state;
-  char *o_save = output_string_save(o);
-  bool success = parser_run(((struct parser_try *)p)->target, state, o);
+bool parser_run_try(const struct parser *p, struct parse_state *state) {
+  struct parse_state _state;
+  state_copy(&_state, state);
+  bool success = parser_run(((struct parser_try *)p)->target, state);
   if (!success) {
-    *state = state_save;
-    output_string_replace(o_save, o);
+    state_destroy(state);
+    *state = _state;
   } else {
-    free(o_save);
+    state_destroy(&_state);
   }
   return success;
 }
@@ -456,17 +522,19 @@ struct parser_execute {
   void *extra;
 };
 
-bool parser_run_execute(const struct parser *p, struct parse_state *state, char **o) {
-  (void)o;
+bool parser_run_execute(const struct parser *p, struct parse_state *state) {
   struct parser_execute *exe = (struct parser_execute *)p;
-  char *o_temp = NULL;
-  bool parse_success = parser_run(exe->target, state, &o_temp);
+  char *o_temp = state->output;
+  state->output = NULL;
+  bool parse_success = parser_run(exe->target, state);
   if (parse_success) {
-    exe->handle(o_temp, exe->extra);
-    state_success_blank(state, o);
-    output_string_append_str(o, o_temp);
+    state_add_handler(state, exe->handle, state->output, exe->extra);
+    state_success_blank(state);
+    char *o_temp2 = state->output;
+    state->output = o_temp;
+    state_output_append_str(state, o_temp2);
+    free(o_temp2);
   }
-  free(o_temp);
   return parse_success;
 }
 
@@ -480,8 +548,19 @@ struct parser *parser_create_execute(parser target, bool (*handle)(char *, void 
   return (struct parser *)parser;
 }
 
+/**
+ * Publically exposed run function.
+ */
+
 bool run(parser p, const char *input, char **output) {
   struct parse_state state;
   state_create(&state, input);
-  return parser_run(p, &state, output);
+  bool success = parser_run(p, &state);
+  if (success) {
+    state_execute(&state);
+    output_string_create(output);
+    output_string_append_str(output, state.output);
+  }
+  state_destroy(&state);
+  return success;
 }
