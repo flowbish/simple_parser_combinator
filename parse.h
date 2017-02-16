@@ -9,6 +9,7 @@
 typedef struct parser *parser;
 
 bool run(parser p, const char *input, char **o);
+void parser_free(parser p);
 
 #define blank parser_create_blank()
 parser parser_create_blank();
@@ -23,6 +24,8 @@ parser parser_create_char(char c);
 parser parser_create_str(char *str);
 #define many parser_create_many
 parser parser_create_many(parser target);
+#define optional parser_create_optional
+parser parser_create_optional(parser target);
 #define try parser_create_try
 parser parser_create_try(parser target);
 

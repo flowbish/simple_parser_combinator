@@ -1,37 +1,37 @@
 #pragma once
 
+#define LINKERSET_START(_name)                  \
+  &__start_##_name
 
-#define __GLOBL1(sym)   __asm__(".globl " #sym)
-#define __GLOBL(sym) __GLOBL1(sym)
+#define LINKERSET_STOP(_name)                   \
+  &__stop_##_name
 
-#define __used __attribute__((__used__))
-#define __weak __attribute__((weak))
-#define __section(x) __attribute__((__section__(x)))
+#define LINKERSET_DECLARE(_name)                \
+  extern _name##_t __attribute__((weak)) *__start_##_name;  \
+  extern _name##_t __attribute__((weak)) *__stop_##_name;  \
+  __asm__(".global __start_" #_name);           \
+  __asm__(".global __stop_" #_name)
 
-#define __MAKE_SET(set, sym)                      \
-  __GLOBL(__CONCAT(__start_set_,set));            \
-  __GLOBL(__CONCAT(__stop_set_,set));             \
-  static void const * const                       \
-  __set_##set##_sym_##sym __section("set_" #set)  \
-       __used = &(sym)
+#define LINKERSET_ADD_ITEM(_name, _desc_name)         \
+  static void const *__##_name##_ptr_##_desc_name     \
+  __attribute__((section(#_name),used)) = &_desc_name
 
-#define SET_ENTRY(set, sym) __MAKE_SET(set, sym)
+#define LINKERSET_ITERATE(_name, _var, _body)   \
+  do {                                          \
+    _name##_t **_beg = LINKERSET_START(_name);  \
+    _name##_t **_end = LINKERSET_STOP(_name);   \
+    while (_beg < _end) {                       \
+      _name##_t *_var = *_beg;                  \
+      _body;                                    \
+      ++_beg;                                   \
+    }                                           \
+  } while (0)
 
-#define SET_DECLARE(set, ptype)                           \
-  extern ptype __weak * __start_set_##set; \
-  extern ptype __weak * __stop_set_##set
+#define LINKERSET_SIZE_PTRDIFF(_name)               \
+  (LINKERSET_STOP(_name) - LINKERSET_START(_name))
 
-#define SET_BEGIN(set)                          \
-  (&__start_set_##set)
+#define LINKERSET_SIZE(_name, _type)            \
+  (_type)LINKERSET_SIZE_PTRDIFF(_name)
 
-#define SET_LIMIT(set)                          \
-  (&__stop_set_##set)
-
-#define SET_FOREACH(pvar, set)                                \
-  for (pvar = SET_BEGIN(set); pvar < SET_LIMIT(set); pvar++)
-
-#define SET_ITEM(set, i)                        \
-  ((SET_BEGIN(set))[i])
-
-#define SET_COUNT(set)                          \
-  (SET_LIMIT(set) - SET_BEGIN(set))
+#define LINKERSET_GET(_name, _var, _index)              \
+  _name##_t *_var = *(LINKERSET_START(_name) + _index)

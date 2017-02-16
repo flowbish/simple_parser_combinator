@@ -5,12 +5,7 @@
 #include <stdio.h>
 
 #include "parse.h"
-
-#ifdef DEBUG
-#define debug(string, ...) fprintf (stderr, "[DEBUG] "string "\n", ##__VA_ARGS__)
-#else
-#define debug(...)
-#endif
+#include "log.h"
 
 struct parse_state {
   const char *input;
@@ -87,7 +82,6 @@ void state_destroy(struct parse_state *target) {
 bool state_execute(struct parse_state *state) {
   bool success = true;
   for (size_t i = 0; i < state->num_outputs; i += 1) {
-    debug("executing handler for '%s'", state->strings[i]);
     success = success && (*state->handlers[i])(state->strings[i], state->args[i]);
   }
   return success;
@@ -155,16 +149,6 @@ bool output_string_append_str(char **o, char *s) {
   }
 }
 
-bool output_string_replace(char *new, char **o) {
-  if (o == NULL) {
-    return false;
-  } else {
-    free(*o);
-    *o = new;
-    return true;
-  }
-}
-
 bool state_success(struct parse_state *state, char c) {
   if (state->output == NULL) {
     output_string_create(&state->output);
@@ -182,16 +166,12 @@ bool state_success_blank(struct parse_state *state) {
 }
 
 bool state_output_append_str(struct parse_state *state, char *str) {
-  if (state->output == NULL) {
-    output_string_create(&state->output);
-  }
   return output_string_append_str(&state->output, str);
 }
 
 bool state_add_handler(struct parse_state *state, bool (*handler)(char *, void *), char *string, void *arg) {
   state->num_outputs += 1;
 
-  debug("added handler for '%s' index %zu", string, state->num_outputs - 1);
   state->strings = realloc(state->strings, (state->num_outputs) * sizeof(char *) );
   state->strings[state->num_outputs - 1] = malloc(strlen(string) + 1);
   strcpy(state->strings[state->num_outputs - 1], string);
@@ -476,6 +456,39 @@ struct parser *parser_create_many(parser target) {
 }
 
 /**
+ * This parser fails if and only if the given parser fails and consumes input.
+ */
+
+struct parser_optional {
+  struct parser parser;
+  parser target;
+};
+
+bool parser_run_optional(const struct parser *p, struct parse_state *state) {
+  size_t _pos = state->pos;
+  bool success = parser_run(((struct parser_optional *)p)->target, state);
+  if (!success && _pos != state->pos) {
+    return false;
+  }
+  state_success_blank(state);
+  return true;
+}
+
+void parser_free_optional(parser p) {
+  parser_free(((struct parser_optional *)p)->target);
+  parser_free_default(p);
+}
+
+struct parser *parser_create_optional(parser target) {
+  struct parser_optional *parser = malloc(sizeof(struct parser_optional));
+  parser_set_defaults(&parser->parser);
+  parser->parser.free = parser_free_optional;
+  parser->parser.run = parser_run_optional;
+  parser->target = target;
+  return (struct parser *)parser;
+}
+
+/**
  * Try to apply a given parser, rolling back input if a parsing error occurs.
  */
 
@@ -527,20 +540,26 @@ bool parser_run_execute(const struct parser *p, struct parse_state *state) {
   char *o_temp = state->output;
   state->output = NULL;
   bool parse_success = parser_run(exe->target, state);
+  char *o_temp2 = state->output;
+  state->output = o_temp;
   if (parse_success) {
-    state_add_handler(state, exe->handle, state->output, exe->extra);
+    state_add_handler(state, exe->handle, o_temp2, exe->extra);
     state_success_blank(state);
-    char *o_temp2 = state->output;
-    state->output = o_temp;
     state_output_append_str(state, o_temp2);
-    free(o_temp2);
   }
+  free(o_temp2);
   return parse_success;
+}
+
+void parser_free_execute(struct parser *p) {
+  parser_free(((struct parser_execute *)p)->target);
+  parser_free_default(p);
 }
 
 struct parser *parser_create_execute(parser target, bool (*handle)(char *, void *), void *extra) {
   struct parser_execute *parser = malloc(sizeof(struct parser_execute));
   parser_set_defaults(&parser->parser);
+  parser->parser.free = parser_free_execute;
   parser->parser.run = parser_run_execute;
   parser->target = target;
   parser->handle = handle;
