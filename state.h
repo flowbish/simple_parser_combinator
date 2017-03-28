@@ -39,15 +39,6 @@ bool state_rewind(struct parse_state *state);
  */
 bool state_rewind_n(struct parse_state *state, size_t n);
 
-/**
- * Allocates a free-able output string to the address given. No-op if o is NULL.
- */
-bool output_string_create(char **o);
-
-bool output_string_append_char(char **o, char c);
-
-bool output_string_append_str(char **o, char *s);
-
 bool state_success(struct parse_state *state, char c);
 
 bool state_success_blank(struct parse_state *state);

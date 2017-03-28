@@ -408,8 +408,8 @@ bool run(parser p, const char *input, char **output) {
   bool success = parser_run(p, &state);
   if (success) {
     state_execute(&state);
-    output_string_create(output);
-    output_string_append_str(output, state.output);
+    *output = malloc(strlen(state.output));
+    strcpy(*output, state.output);
   }
   state_destroy(&state);
   return success;
