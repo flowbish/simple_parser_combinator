@@ -3,9 +3,12 @@ OBJS_DIR = .objs
 
 # define the EXES
 EXE_PARSE_TEST=parse_test
-OBJS_PARSE_TEST=$(EXE_PARSE_TEST).o parse.o
+OBJS_PARSE_TEST=$(EXE_PARSE_TEST).o parse.o state.o
 
-EXES_TEST=$(EXE_PARSE_TEST)
+EXE_STATE_TEST=state_test
+OBJS_STATE_TEST=$(EXE_STATE_TEST).o state.o
+
+EXES_TEST=$(EXE_PARSE_TEST) $(EXE_STATE_TEST)
 
 # set up compiler
 CC = clang
@@ -56,6 +59,12 @@ $(EXE_PARSE_TEST)-debug: $(OBJS_PARSE_TEST:%.o=$(OBJS_DIR)/%-debug.o)
 	$(LD) $^ $(LDFLAGS) -o $@
 
 $(EXE_PARSE_TEST): $(OBJS_PARSE_TEST:%.o=$(OBJS_DIR)/%-release.o)
+	$(LD) $^ $(LDFLAGS) -o $@
+
+$(EXE_STATE_TEST)-debug: $(OBJS_STATE_TEST:%.o=$(OBJS_DIR)/%-debug.o)
+	$(LD) $^ $(LDFLAGS) -o $@
+
+$(EXE_STATE_TEST): $(OBJS_STATE_TEST:%.o=$(OBJS_DIR)/%-release.o)
 	$(LD) $^ $(LDFLAGS) -o $@
 
 .PHONY: clean
