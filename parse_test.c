@@ -52,7 +52,7 @@ bool check_parse(const char *input, parser p, const char *expected) {
   }
   free(output);
   parser_free(p);
-  return true;
+  return result;
 }
 
 new_test(test_blank) {
