@@ -3,10 +3,10 @@ OBJS_DIR = .objs
 
 # define the EXES
 EXE_PARSE_TEST=parse_test
-OBJS_PARSE_TEST=$(EXE_PARSE_TEST).o parse.o state.o
+OBJS_PARSE_TEST=$(EXE_PARSE_TEST).o parse.o state.o test.o
 
 EXE_STATE_TEST=state_test
-OBJS_STATE_TEST=$(EXE_STATE_TEST).o state.o
+OBJS_STATE_TEST=$(EXE_STATE_TEST).o state.o test.o
 
 EXES_TEST=$(EXE_PARSE_TEST) $(EXE_STATE_TEST)
 
