@@ -1,5 +1,6 @@
 # directory to store object files
 OBJS_DIR = .objs
+BUILD_DIR = build
 
 # define the EXES
 EXE_PARSE_TEST=parse_test
@@ -30,14 +31,17 @@ all: release
 .PHONY: release
 .PHONY: debug
 
-release: $(EXES_TEST)
-debug: clean $(EXES_TEST:%=%-debug)
+release: $(EXES_TEST:%=$(BUILD_DIR)/%)
+debug: clean $(EXES_TEST:%=$(BUILD_DIR)/%-debug)
 
 # include dependencies
 -include $(OBJS_DIR)/*.d
 
 $(OBJS_DIR):
 	@mkdir -p $(OBJS_DIR)
+
+$(BUILD_DIR):
+	@mkdir -p $(BUILD_DIR)
 
 # patterns to create objects
 # keep the debug and release postfix for object files so that we can always
@@ -49,24 +53,24 @@ $(OBJS_DIR)/%-release.o: %.c | $(OBJS_DIR)
 	$(CC) $(CFLAGS_RELEASE) $< -o $@
 
 # exes
-$(EXE_SHELL)-debug: $(OBJS_SHELL:%.o=$(OBJS_DIR)/%-debug.o)
+$(BUILD_DIR)/$(EXE_SHELL)-debug: $(OBJS_SHELL:%.o=$(OBJS_DIR)/%-debug.o) | $(BUILD_DIR)
 	$(LD) $^ $(LDFLAGS) -o $@
 
-$(EXE_SHELL): $(OBJS_SHELL:%.o=$(OBJS_DIR)/%-release.o)
+$(BUILD_DIR)/$(EXE_SHELL): $(OBJS_SHELL:%.o=$(OBJS_DIR)/%-release.o) | $(BUILD_DIR)
 	$(LD) $^ $(LDFLAGS) -o $@
 
-$(EXE_PARSE_TEST)-debug: $(OBJS_PARSE_TEST:%.o=$(OBJS_DIR)/%-debug.o)
+$(BUILD_DIR)/$(EXE_PARSE_TEST)-debug: $(OBJS_PARSE_TEST:%.o=$(OBJS_DIR)/%-debug.o) | $(BUILD_DIR)
 	$(LD) $^ $(LDFLAGS) -o $@
 
-$(EXE_PARSE_TEST): $(OBJS_PARSE_TEST:%.o=$(OBJS_DIR)/%-release.o)
+$(BUILD_DIR)/$(EXE_PARSE_TEST): $(OBJS_PARSE_TEST:%.o=$(OBJS_DIR)/%-release.o) | $(BUILD_DIR)
 	$(LD) $^ $(LDFLAGS) -o $@
 
-$(EXE_STATE_TEST)-debug: $(OBJS_STATE_TEST:%.o=$(OBJS_DIR)/%-debug.o)
+$(BUILD_DIR)/$(EXE_STATE_TEST)-debug: $(OBJS_STATE_TEST:%.o=$(OBJS_DIR)/%-debug.o) | $(BUILD_DIR)
 	$(LD) $^ $(LDFLAGS) -o $@
 
-$(EXE_STATE_TEST): $(OBJS_STATE_TEST:%.o=$(OBJS_DIR)/%-release.o)
+$(BUILD_DIR)/$(EXE_STATE_TEST): $(OBJS_STATE_TEST:%.o=$(OBJS_DIR)/%-release.o) | $(BUILD_DIR)
 	$(LD) $^ $(LDFLAGS) -o $@
 
 .PHONY: clean
 clean:
-	rm -rf .objs $(EXES_TEST) $(EXES_TEST:%=%-debug)
+	rm -rf $(OBJS_DIR) $(BUILD_DIR)
