@@ -1,6 +1,8 @@
 # directory to store object files
 OBJS_DIR = .objs
 BUILD_DIR = build
+BUILD_DIR_RELEASE = $(BUILD_DIR)/release
+BUILD_DIR_DEBUG = $(BUILD_DIR)/debug
 
 # define the EXES
 EXE_PARSE_TEST=parse_test
@@ -31,8 +33,8 @@ all: release
 .PHONY: release
 .PHONY: debug
 
-release: $(EXES_TEST:%=$(BUILD_DIR)/%)
-debug: clean $(EXES_TEST:%=$(BUILD_DIR)/%-debug)
+release: $(EXES_TEST:%=$(BUILD_DIR_RELEASE)/%)
+debug: $(EXES_TEST:%=$(BUILD_DIR_DEBUG)/%)
 
 # include dependencies
 -include $(OBJS_DIR)/*.d
@@ -42,6 +44,12 @@ $(OBJS_DIR):
 
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
+
+$(BUILD_DIR_RELEASE): $(BUILD_DIR)
+	@mkdir -p $(BUILD_DIR_RELEASE)
+
+$(BUILD_DIR_DEBUG): $(BUILD_DIR)
+	@mkdir -p $(BUILD_DIR_DEBUG)
 
 # patterns to create objects
 # keep the debug and release postfix for object files so that we can always
@@ -53,22 +61,22 @@ $(OBJS_DIR)/%-release.o: %.c | $(OBJS_DIR)
 	$(CC) $(CFLAGS_RELEASE) $< -o $@
 
 # exes
-$(BUILD_DIR)/$(EXE_SHELL)-debug: $(OBJS_SHELL:%.o=$(OBJS_DIR)/%-debug.o) | $(BUILD_DIR)
+$(BUILD_DIR_DEBUG)/$(EXE_SHELL): $(OBJS_SHELL:%.o=$(OBJS_DIR)/%-debug.o) | $(BUILD_DIR_DEBUG)
 	$(LD) $^ $(LDFLAGS) -o $@
 
-$(BUILD_DIR)/$(EXE_SHELL): $(OBJS_SHELL:%.o=$(OBJS_DIR)/%-release.o) | $(BUILD_DIR)
+$(BUILD_DIR_RELEASE)/$(EXE_SHELL): $(OBJS_SHELL:%.o=$(OBJS_DIR)/%-release.o) | $(BUILD_DIR_RELEASE)
 	$(LD) $^ $(LDFLAGS) -o $@
 
-$(BUILD_DIR)/$(EXE_PARSE_TEST)-debug: $(OBJS_PARSE_TEST:%.o=$(OBJS_DIR)/%-debug.o) | $(BUILD_DIR)
+$(BUILD_DIR_DEBUG)/$(EXE_PARSE_TEST): $(OBJS_PARSE_TEST:%.o=$(OBJS_DIR)/%-debug.o) | $(BUILD_DIR_DEBUG)
 	$(LD) $^ $(LDFLAGS) -o $@
 
-$(BUILD_DIR)/$(EXE_PARSE_TEST): $(OBJS_PARSE_TEST:%.o=$(OBJS_DIR)/%-release.o) | $(BUILD_DIR)
+$(BUILD_DIR_RELEASE)/$(EXE_PARSE_TEST): $(OBJS_PARSE_TEST:%.o=$(OBJS_DIR)/%-release.o) | $(BUILD_DIR_RELEASE)
 	$(LD) $^ $(LDFLAGS) -o $@
 
-$(BUILD_DIR)/$(EXE_STATE_TEST)-debug: $(OBJS_STATE_TEST:%.o=$(OBJS_DIR)/%-debug.o) | $(BUILD_DIR)
+$(BUILD_DIR_DEBUG)/$(EXE_STATE_TEST): $(OBJS_STATE_TEST:%.o=$(OBJS_DIR)/%-debug.o) | $(BUILD_DIR_DEBUG)
 	$(LD) $^ $(LDFLAGS) -o $@
 
-$(BUILD_DIR)/$(EXE_STATE_TEST): $(OBJS_STATE_TEST:%.o=$(OBJS_DIR)/%-release.o) | $(BUILD_DIR)
+$(BUILD_DIR_RELEASE)/$(EXE_STATE_TEST): $(OBJS_STATE_TEST:%.o=$(OBJS_DIR)/%-release.o) | $(BUILD_DIR_RELEASE)
 	$(LD) $^ $(LDFLAGS) -o $@
 
 .PHONY: clean
