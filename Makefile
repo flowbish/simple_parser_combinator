@@ -6,7 +6,7 @@ BUILD_DIR_DEBUG = $(BUILD_DIR)/debug
 
 # define the EXES
 EXE_PARSE_TEST=parse_test
-OBJS_PARSE_TEST=$(EXE_PARSE_TEST).o parse.o state.o test.o
+OBJS_PARSE_TEST=$(EXE_PARSE_TEST).o parse.o state.o test.o parser/blank.o
 
 EXE_STATE_TEST=state_test
 OBJS_STATE_TEST=$(EXE_STATE_TEST).o state.o test.o
@@ -15,7 +15,7 @@ EXES_TEST=$(EXE_PARSE_TEST) $(EXE_STATE_TEST)
 
 # set up compiler
 CC = clang
-INCLUDES=-I./includes/
+INCLUDES=-I. -Iparser
 WARNINGS = -Wall -Wextra -Werror -Wno-error=unused-parameter
 CFLAGS_DEBUG   = -O0 $(INCLUDES) $(WARNINGS) -g -std=c99 -c -MMD -MP -D_GNU_SOURCE -DDEBUG
 CFLAGS_RELEASE = -O2 $(INCLUDES) $(WARNINGS) -g -std=c99 -c -MMD -MP -D_GNU_SOURCE
@@ -23,6 +23,9 @@ CFLAGS_RELEASE = -O2 $(INCLUDES) $(WARNINGS) -g -std=c99 -c -MMD -MP -D_GNU_SOUR
 # set up linker
 LD = clang
 LDFLAGS =
+
+# utilities
+MKDIR = mkdir -p
 
 .PHONY: all
 all: release
@@ -40,24 +43,26 @@ debug: $(EXES_TEST:%=$(BUILD_DIR_DEBUG)/%)
 -include $(OBJS_DIR)/*.d
 
 $(OBJS_DIR):
-	@mkdir -p $(OBJS_DIR)
+	@$(MKDIR) $(OBJS_DIR)
 
 $(BUILD_DIR):
-	@mkdir -p $(BUILD_DIR)
+	@$(MKDIR) $(BUILD_DIR)
 
 $(BUILD_DIR_RELEASE): $(BUILD_DIR)
-	@mkdir -p $(BUILD_DIR_RELEASE)
+	@$(MKDIR) $(BUILD_DIR_RELEASE)
 
 $(BUILD_DIR_DEBUG): $(BUILD_DIR)
-	@mkdir -p $(BUILD_DIR_DEBUG)
+	@$(MKDIR) $(BUILD_DIR_DEBUG)
 
 # patterns to create objects
 # keep the debug and release postfix for object files so that we can always
 # separate them correctly
 $(OBJS_DIR)/%-debug.o: %.c | $(OBJS_DIR)
+	@$(MKDIR) $(@D)
 	$(CC) $(CFLAGS_DEBUG) $< -o $@
 
 $(OBJS_DIR)/%-release.o: %.c | $(OBJS_DIR)
+	@$(MKDIR) $(@D)
 	$(CC) $(CFLAGS_RELEASE) $< -o $@
 
 # exes

@@ -4,17 +4,11 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "parser/parser_internal.h"
 #include "parse.h"
 #include "state.h"
 #include "log.h"
 
-struct parser {
-  bool (*run)(const struct parser*, struct parse_state*);
-  void (*free)(struct parser*);
-};
-
-typedef bool (*parser_run_fn)(const struct parser*, struct parse_state*, char **o);
-typedef void (*parser_free_fn)(struct parser*);
 /**
  * Generic interface to executing a parser.
  */
@@ -46,26 +40,6 @@ bool parser_run_default(const struct parser *p, struct parse_state *state) {
 void parser_set_defaults(struct parser *p) {
   p->free = parser_free_default;
   p->run = parser_run_default;
-}
-
-/**
- * Blank parser, will consume no input and always succeed.
- */
-
-struct parser_blank {
-  struct parser parser;
-};
-
-bool parser_run_blank(const struct parser *p, struct parse_state *state) {
-  (void)p;
-  return state_success_blank(state);
-}
-
-struct parser *parser_create_blank() {
-  struct parser_blank *parser = malloc(sizeof(struct parser_blank));
-  parser_set_defaults(&parser->parser);
-  parser->parser.run = parser_run_blank;
-  return (struct parser *)parser;
 }
 
 /**
