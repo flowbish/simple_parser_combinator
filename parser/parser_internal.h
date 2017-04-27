@@ -11,3 +11,4 @@ typedef bool (*parser_run_fn)(const struct parser*, struct parse_state*, char **
 typedef void (*parser_free_fn)(struct parser*);
 
 void parser_set_defaults(struct parser *);
+bool parser_run(const struct parser *, struct parse_state *);

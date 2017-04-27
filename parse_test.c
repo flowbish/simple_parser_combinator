@@ -6,7 +6,9 @@
 #include "parse.h"
 #include "log.h"
 
-bool check_parse(const char *input, parser p, const char *expected) {
+bool
+check_parse(const char *input, parser p, const char *expected)
+{
   char *output = NULL;
   bool success = run(p, input, &output);
   bool result = true;
@@ -28,47 +30,58 @@ bool check_parse(const char *input, parser p, const char *expected) {
   return result;
 }
 
-new_test(test_blank) {
+new_test(test_blank)
+{
   return check_parse("", blank, "");
 }
 
-new_test(test_blank_with_input) {
+new_test(test_blank_with_input)
+{
   return check_parse("test", blank, "");
 }
 
-new_test(test_null) {
+new_test(test_null)
+{
   return check_parse("", null, NULL);
 }
 
-new_test(test_eof_pass) {
+new_test(test_eof_pass)
+{
   return check_parse("", eof, "");
 }
 
-new_test(test_eof_fail) {
+new_test(test_eof_fail)
+{
   return check_parse("a", eof, NULL);
 }
 
-new_test(test_char) {
+new_test(test_char)
+{
   return check_parse("test", ch('t'), "t");
 }
 
-new_test(test_str_full) {
+new_test(test_str_full)
+{
   return check_parse("test", str("test"), "test");
 }
 
-new_test(test_str_partial) {
+new_test(test_str_partial)
+{
   return check_parse("testing", str("test"), "test");
 }
 
-new_test(test_str_fail) {
+new_test(test_str_fail)
+{
   return check_parse("test", str("something"), NULL);
 }
 
-new_test(test_or_first) {
+new_test(test_or_first)
+{
   return check_parse("test", or(blank, null), "");
 }
 
-new_test(test_or_second) {
+new_test(test_or_second)
+{
   return check_parse("test", or(null, blank), "");
 }
 
@@ -79,7 +92,8 @@ new_test(test_or_second) {
  * for this to parse successful. This is why wrapping the first term in a try()
  * is reccommended.
  */
-new_test(test_or_string) {
+new_test(test_or_string)
+{
   return check_parse("ththat", or(str("this"), str("that")), "ththat");
 }
 
@@ -88,40 +102,50 @@ new_test(test_or_string) {
  * behaves exactly as we expect, with both branches of the or starting from the
  * same character regardless of whether the first consumed any input.
  */
-new_test(test_try_or_string) {
+new_test(test_try_or_string)
+{
   return check_parse("that", or(try(str("this")), str("that")), "that");
 }
 
-new_test(test_and_first_fail) {
+new_test(test_and_first_fail)
+{
   return check_parse("test", and(null, blank), NULL);
 }
 
-new_test(test_and_second_fail) {
+new_test(test_and_second_fail)
+{
   return check_parse("test", and(blank, null), NULL);
 }
 
-new_test(test_and_second_char) {
+new_test(test_and_second_char)
+{
   return check_parse("test", and(ch('t'), ch('e')), "te");
 }
 
-new_test(test_many_no_match) {
+new_test(test_many_no_match)
+{
   return check_parse("aaabbb", many(null), "");
 }
 
-new_test(test_many_single_match) {
+new_test(test_many_single_match)
+{
   return check_parse("ab", many(ch('a')), "a");
 }
 
-new_test(test_many_matches) {
+new_test(test_many_matches)
+{
   return check_parse("aaabbb", many(ch('a')), "aaa");
 }
 
-bool set_int(char *x, void *total) {
+bool
+set_int(char *x, void *total)
+{
   *(int *)total = strlen(x);
   return true;
 }
 
-new_test(test_exe_pass) {
+new_test(test_exe_pass)
+{
   int total = 0;
   parser parse_set = or(try(and(exe(ch('a'), set_int, &total),
                                 ch('b'))),
@@ -129,7 +153,8 @@ new_test(test_exe_pass) {
   return check_parse("ab", parse_set, "ab") && total == 1;
 }
 
-new_test(test_exe_fail) {
+new_test(test_exe_fail)
+{
   int total = 0;
   parser parse_set = or(try(and(exe(ch('a'), set_int, &total),
                                 ch('b'))),
@@ -137,28 +162,37 @@ new_test(test_exe_fail) {
   return check_parse("a", parse_set, "a") && total == 0;
 }
 
-bool parsed_x(char *xs, void *total) {
+static bool
+parsed_x(char *xs, void *total)
+{
   *(int *)total += 10 * strlen(xs);
   return true;
 }
 
-bool parsed_v(char *vs, void *total) {
+static bool
+parsed_v(char *vs, void *total)
+{
   *(int *)total += 5 * strlen(vs);
   return true;
 }
 
-bool parsed_i(char *is, void *total) {
+static bool
+parsed_i(char *is, void *total)
+{
   *(int *)total += strlen(is);
   return true;
 }
 
-bool parsed_iv(char *iv, void *total) {
+static bool
+parsed_iv(char *iv, void *total)
+{
   (void)iv;
   *(int *)total += 4;
   return true;
 }
 
-new_test(test_roman_numeral) {
+new_test(test_roman_numeral)
+{
   int total = 0;
   return check_parse("XVII", and4(exe(many(ch('X')), parsed_x, &total),
                                   exe(many(ch('V')), parsed_v, &total),
@@ -167,7 +201,8 @@ new_test(test_roman_numeral) {
     && total == 17;
 }
 
-new_test(test_roman_numeral_2) {
+new_test(test_roman_numeral_2)
+{
   int total = 0;
 
   parser parse_xs = exe(many(ch('X')), parsed_x, &total);
@@ -179,7 +214,9 @@ new_test(test_roman_numeral_2) {
   return check_parse("XVII", parse_roman, "XVII") && total == 17;
 }
 
-int value(char c) {
+int
+value(char c)
+{
   switch(c) {
   case 'I':
     return 1;
@@ -200,26 +237,36 @@ int value(char c) {
   }
 }
 
-bool add_value(char *letter, void *total) {
+bool
+add_value(char *letter, void *total)
+{
   *(size_t *)total += value(*letter);
   return true;
 }
 
-bool sub_value(char *letter, void *total) {
+bool
+sub_value(char *letter, void *total)
+{
   *(size_t *)total -= value(*letter);
   return true;
 }
 
-parser pair(char a, char b, void *total) {
+parser
+pair(char a, char b, void *total)
+{
   return and(exe(ch(a), sub_value, total),
              exe(ch(b), add_value, total));
 }
 
-parser single(char a, size_t *total) {
+parser
+single(char a, size_t *total)
+{
   return optional(many(exe(ch(a), add_value, total)));
 }
 
-parser roman_numeral(size_t *total) {
+parser
+roman_numeral(size_t *total)
+{
   parser parse_m = single('M', total);
   parser parse_d = single('D', total);
   parser parse_c = or3(try(pair('C', 'M', total)),
@@ -237,12 +284,14 @@ parser roman_numeral(size_t *total) {
               parse_v, parse_i, eof);
 }
 
-new_test(test_roman_numeral_3) {
+new_test(test_roman_numeral_3)
+{
   size_t total = 0;
   return check_parse("XCII", roman_numeral(&total), "XCII") && total == 92;
 }
 
-new_test(test_roman_numeral_4) {
+new_test(test_roman_numeral_4)
+{
   size_t total = 0;
   return check_parse("MDCCXCVII", roman_numeral(&total), "MDCCXCVII") && total == 1797;
 }
