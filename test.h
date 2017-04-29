@@ -26,16 +26,6 @@ LINKERSET_DECLARE(test_case_name);
   declare_test(name);                           \
   define_test(name)
 
-#define run_test(name, test_fn)                    \
-  do { bool success = (test_fn)();                  \
-    if (!success) {                                 \
-      error("Test \"%s\" failed, aborting.", name); \
-      return 1;                                     \
-    }                                               \
-  } while (0)
-
 #define num_tests() LINKERSET_SIZE(test_case_fn, size_t)
 #define get_test_fn(fn, i) LINKERSET_GET(test_case_fn, fn, i)
 #define get_test_name(name, i) LINKERSET_GET(test_case_name, name, i)
-
-bool test_should_run(char *test_name, char **valid_names, size_t num_valid_names);

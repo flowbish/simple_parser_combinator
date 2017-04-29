@@ -3,7 +3,7 @@
 #include "log.h"
 #include "test.h"
 
-bool
+static bool
 test_should_run(
     char *test_name,
     char **valid_names,
