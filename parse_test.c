@@ -321,14 +321,19 @@ capture_string(char *capture, void *dest)
   return true;
 }
 
+static parser
+delim_parser(char left, char right, char **inner)
+{
+  return and3(ch(left),
+              exe(until(ch(right)),
+                  capture_string,
+                  inner),
+              ch(right));
+}
+
 new_test(test_delims)
 {
   char *inner = NULL;
-  parser parse_inside_braces = and3(ch('{'),
-                                    exe(until(ch('}')),
-                                        capture_string,
-                                        &inner),
-                                    ch('}'));
-  return check_parse("{test}", parse_inside_braces, "{test}") &&
+  return check_parse("{test}", delim_parser('{', '}', &inner), "{test}") &&
     assert_string_equal("test", inner);
 }
