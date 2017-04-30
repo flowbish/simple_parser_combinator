@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include "assert.h"
 #include "test.h"
 #include "parse.h"
 #include "log.h"
@@ -309,4 +310,25 @@ new_test(test_roman_numeral_4)
 {
   size_t total = 0;
   return check_parse("MDCCXCVII", roman_numeral(&total), "MDCCXCVII") && total == 1797;
+}
+
+static bool
+capture_string(char *capture, void *dest)
+{
+  // Gross
+  *((char **)dest) = malloc(strlen(capture) + 1);
+  strcpy(*((char **)dest), capture);
+  return true;
+}
+
+new_test(test_delims)
+{
+  char *inner = NULL;
+  parser parse_inside_braces = and3(ch('{'),
+                                    exe(until(ch('}')),
+                                        capture_string,
+                                        &inner),
+                                    ch('}'));
+  return check_parse("{test}", parse_inside_braces, "{test}") &&
+    assert_string_equal("test", inner);
 }

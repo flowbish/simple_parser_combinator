@@ -7,7 +7,7 @@ BUILD_DIR_DEBUG = $(BUILD_DIR)/debug
 EXE_PARSE_TEST=parse_test
 SRC_PARSERS = $(wildcard parser/*.c)
 OBJS_PARSERS = $(SRC_PARSERS:%.c=%.o)
-OBJS_PARSE_TEST=$(EXE_PARSE_TEST).o parse.o state.o test.o $(OBJS_PARSERS)
+OBJS_PARSE_TEST=$(EXE_PARSE_TEST).o assert.o parse.o state.o test.o $(OBJS_PARSERS)
 
 EXE_STATE_TEST=state_test
 OBJS_STATE_TEST=$(EXE_STATE_TEST).o state.o test.o
