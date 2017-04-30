@@ -7,20 +7,20 @@
 #include "linker_set.h"
 #include "log.h"
 
-typedef bool (test_case_fn_t)(void);
+typedef struct error *(test_case_fn_t)(void);
 typedef char *test_case_name_t;
 
 LINKERSET_DECLARE(test_case_fn);
 LINKERSET_DECLARE(test_case_name);
 
 #define declare_test(name)                                    \
-  bool name(void);                                            \
+  struct error *name(void);                                   \
   LINKERSET_ADD_ITEM(test_case_fn, name);                     \
   const char *test_case_##name##_str = #name;                 \
   LINKERSET_ADD_ITEM(test_case_name, test_case_##name##_str)
 
 #define define_test(name)                       \
-  bool name()
+  struct error *name()
 
 #define new_test(name)                          \
   declare_test(name);                           \

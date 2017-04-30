@@ -8,5 +8,5 @@
 
 new_test(create_state)
 {
-  return 1;
+  return NULL;
 }

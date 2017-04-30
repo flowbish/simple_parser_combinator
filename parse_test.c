@@ -3,32 +3,32 @@
 #include <stdlib.h>
 
 #include "assert.h"
+#include "error.h"
 #include "test.h"
 #include "parse.h"
 #include "log.h"
 
-bool
+struct error*
 check_parse(const char *input, parser p, const char *expected)
 {
   char *output = NULL;
   bool success = run(p, input, &output);
-  bool result = true;
+  struct error *error = NULL;
+
   if (!success && expected != NULL) {
-    error("Parser failed to match.");
-    result = false;
+    error_to(error, "Parser failed to match.");
   } else if (success && expected == NULL) {
-    error("Parser matched erroneously.");
-    error("Found: %s", output);
-    result = false;
+    error_to(error, "Parser matched erroneously.\nFound: %s", output);
   } else if (success && expected != NULL && strcmp(expected, output) != 0) {
-    error("Parser failed to parse correctly:");
-    error("Found: %s", output);
-    error("Expected: %s", expected);
-    result = false;
+    error_to(error,
+             "Parser failed to parse correctly:\n"
+             "Expected: %s\n"
+             "Found: %s", expected, output);
   }
+
   free(output);
   parser_free(p);
-  return result;
+  return error;
 }
 
 new_test(test_blank)
@@ -166,7 +166,9 @@ new_test(test_exe_pass)
   parser parse_set = or(try(and(exe(ch('a'), set_int, &total),
                                 ch('b'))),
                         (ch('a')));
-  return check_parse("ab", parse_set, "ab") && total == 1;
+  error_try(check_parse("ab", parse_set, "ab"));
+  error_try(assert_int_equal(1, total));
+  return NULL;
 }
 
 new_test(test_exe_fail)
@@ -175,7 +177,9 @@ new_test(test_exe_fail)
   parser parse_set = or(try(and(exe(ch('a'), set_int, &total),
                                 ch('b'))),
                         (ch('a')));
-  return check_parse("a", parse_set, "a") && total == 0;
+  error_try(check_parse("a", parse_set, "a"));
+  error_try(assert_int_equal(0, total));
+  return NULL;
 }
 
 static bool
@@ -210,11 +214,12 @@ parsed_iv(char *iv, void *total)
 new_test(test_roman_numeral)
 {
   int total = 0;
-  return check_parse("XVII", and4(exe(many(ch('X')), parsed_x, &total),
+  error_try(check_parse("XVII", and4(exe(many(ch('X')), parsed_x, &total),
                                   exe(many(ch('V')), parsed_v, &total),
                                   exe(many(ch('I')), parsed_i, &total),
-                                  eof), "XVII")
-    && total == 17;
+                                   eof), "XVII"));
+  error_try(assert_int_equal(17, total));
+  return NULL;
 }
 
 new_test(test_roman_numeral_2)
@@ -227,7 +232,9 @@ new_test(test_roman_numeral_2)
                        exe(many(ch('I')), parsed_i, &total));
   parser parse_roman = and4(parse_xs, parse_vs, parse_is, eof);
 
-  return check_parse("XVII", parse_roman, "XVII") && total == 17;
+  error_try(check_parse("XVII", parse_roman, "XVII"));
+  error_try(assert_int_equal(17, total));
+  return NULL;
 }
 
 int
@@ -303,13 +310,17 @@ roman_numeral(size_t *total)
 new_test(test_roman_numeral_3)
 {
   size_t total = 0;
-  return check_parse("XCII", roman_numeral(&total), "XCII") && total == 92;
+  error_try(check_parse("XCII", roman_numeral(&total), "XCII"));
+  error_try(assert_int_equal(92, total));
+  return NULL;
 }
 
 new_test(test_roman_numeral_4)
 {
   size_t total = 0;
-  return check_parse("MDCCXCVII", roman_numeral(&total), "MDCCXCVII") && total == 1797;
+  error_try(check_parse("MDCCXCVII", roman_numeral(&total), "MDCCXCVII"));
+  error_try(assert_int_equal(1797, total));
+  return NULL;
 }
 
 static bool
@@ -334,6 +345,7 @@ delim_parser(char left, char right, char **inner)
 new_test(test_delims)
 {
   char *inner = NULL;
-  return check_parse("{test}", delim_parser('{', '}', &inner), "{test}") &&
-    assert_string_equal("test", inner);
+  error_try(check_parse("{test}", delim_parser('{', '}', &inner), "{test}"));
+  error_try(assert_string_equal("test", inner));
+  return NULL;
 }

@@ -2,6 +2,7 @@
 
 #include "log.h"
 #include "test.h"
+#include "error.h"
 
 static bool
 test_should_run(
@@ -29,11 +30,12 @@ main(int argc, char **argv)
     // arguments)
     if (argc == 1 || test_should_run(*name, &argv[1], argc - 1)) {
       debug("Running test \"%s\"", *name);
-      bool success = (*test)();
-      if (success) {
+      struct error *error = (*test)();
+      if (error == NULL) {
         pass += 1;
       } else {
         error("Test \"%s\" failed.", *name);
+        error("%s", error->message);
         fail += 1;
       }
     }
