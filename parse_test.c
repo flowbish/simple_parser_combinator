@@ -107,6 +107,21 @@ new_test(test_try_or_string)
   return check_parse("that", or(try(str("this")), str("that")), "that");
 }
 
+new_test(test_until)
+{
+  return check_parse("111one", until(str("one")), "111");
+}
+
+new_test(test_until_empty)
+{
+  return check_parse("", until(str("one")), "");
+}
+
+new_test(test_until_eof)
+{
+  return check_parse("11111", until(str("one")), "11111");
+}
+
 new_test(test_and_first_fail)
 {
   return check_parse("test", and(null, blank), NULL);

@@ -28,6 +28,8 @@ parser parser_create_many(parser target);
 parser parser_create_optional(parser target);
 #define try parser_create_try
 parser parser_create_try(parser target);
+#define until parser_create_until
+parser parser_create_until(parser target);
 
 #define or5(p, ...) or(p, or4(__VA_ARGS__))
 #define or4(p, ...) or(p, or3(__VA_ARGS__))
