@@ -9,7 +9,7 @@
 
 struct parser_many {
   struct parser parser;
-  parser target;
+  struct parser *target;
 };
 
 static bool
@@ -17,7 +17,7 @@ parser_run_many(const struct parser *p, struct parse_state *state)
 {
   state_success_blank(state);
   bool success = true;
-  parser target = ((struct parser_many *)p)->target;
+  struct parser *target = ((struct parser_many *)p)->target;
   do {
     success = parser_run(target, state);
   } while (success == true);
@@ -25,7 +25,7 @@ parser_run_many(const struct parser *p, struct parse_state *state)
 }
 
 static void
-parser_free_many(parser p)
+parser_free_many(struct parser *p)
 {
   parser_free(((struct parser_many *)p)->target);
 }

@@ -9,7 +9,7 @@
 #include "log.h"
 
 struct error*
-check_parse(const char *input, parser p, const char *expected)
+check_parse(const char *input, struct parser *p, const char *expected)
 {
   char *output = NULL;
   bool success = run(p, input, &output);
@@ -138,6 +138,11 @@ new_test(test_and_second_char)
   return check_parse("test", and(ch('t'), ch('e')), "te");
 }
 
+new_test(test_and_second_char2)
+{
+  return check_parse("test", and(ch('t'), ch('e'), ch('s')), "tes");
+}
+
 new_test(test_many_no_match)
 {
   return check_parse("aaabbb", many(null), "");
@@ -163,7 +168,7 @@ set_int(char *x, void *total)
 new_test(test_exe_pass)
 {
   int total = 0;
-  parser parse_set = or(try(and(exe(ch('a'), set_int, &total),
+  struct parser *parse_set = or(try(and(exe(ch('a'), set_int, &total),
                                 ch('b'))),
                         (ch('a')));
   error_try(check_parse("ab", parse_set, "ab"));
@@ -174,7 +179,7 @@ new_test(test_exe_pass)
 new_test(test_exe_fail)
 {
   int total = 0;
-  parser parse_set = or(try(and(exe(ch('a'), set_int, &total),
+  struct parser *parse_set = or(try(and(exe(ch('a'), set_int, &total),
                                 ch('b'))),
                         (ch('a')));
   error_try(check_parse("a", parse_set, "a"));
@@ -214,7 +219,7 @@ parsed_iv(char *iv, void *total)
 new_test(test_roman_numeral)
 {
   int total = 0;
-  error_try(check_parse("XVII", and4(exe(many(ch('X')), parsed_x, &total),
+  error_try(check_parse("XVII", and(exe(many(ch('X')), parsed_x, &total),
                                   exe(many(ch('V')), parsed_v, &total),
                                   exe(many(ch('I')), parsed_i, &total),
                                    eof), "XVII"));
@@ -226,11 +231,11 @@ new_test(test_roman_numeral_2)
 {
   int total = 0;
 
-  parser parse_xs = exe(many(ch('X')), parsed_x, &total);
-  parser parse_vs = exe(many(ch('V')), parsed_v, &total);
-  parser parse_is = or(try(exe(str("IV"), parsed_iv, &total)),
+  struct parser *parse_xs = exe(many(ch('X')), parsed_x, &total);
+  struct parser *parse_vs = exe(many(ch('V')), parsed_v, &total);
+  struct parser *parse_is = or(try(exe(str("IV"), parsed_iv, &total)),
                        exe(many(ch('I')), parsed_i, &total));
-  parser parse_roman = and4(parse_xs, parse_vs, parse_is, eof);
+  struct parser *parse_roman = and(parse_xs, parse_vs, parse_is, eof);
 
   error_try(check_parse("XVII", parse_roman, "XVII"));
   error_try(assert_int_equal(17, total));
@@ -274,36 +279,36 @@ sub_value(char *letter, void *total)
   return true;
 }
 
-parser
+struct parser *
 pair(char a, char b, void *total)
 {
   return and(exe(ch(a), sub_value, total),
              exe(ch(b), add_value, total));
 }
 
-parser
+struct parser *
 single(char a, size_t *total)
 {
   return optional(many(exe(ch(a), add_value, total)));
 }
 
-parser
+struct parser *
 roman_numeral(size_t *total)
 {
-  parser parse_m = single('M', total);
-  parser parse_d = single('D', total);
-  parser parse_c = or3(try(pair('C', 'M', total)),
-                       try(pair('C', 'D', total)),
-                       single('C', total));
-  parser parse_l = single('L', total);
-  parser parse_x = or3(try(pair('X', 'C', total)),
-                       try(pair('X', 'L', total)),
-                       single('X', total));
-  parser parse_v = single('V', total);
-  parser parse_i = or3(try(pair('I', 'X', total)),
-                       try(pair('I', 'V', total)),
-                       single('I', total));
-  return and8(parse_m, parse_d, parse_c, parse_l, parse_x,
+  struct parser *parse_m = single('M', total);
+  struct parser *parse_d = single('D', total);
+  struct parser *parse_c = or(try(pair('C', 'M', total)),
+                      try(pair('C', 'D', total)),
+                      single('C', total));
+  struct parser *parse_l = single('L', total);
+  struct parser *parse_x = or(try(pair('X', 'C', total)),
+                      try(pair('X', 'L', total)),
+                      single('X', total));
+  struct parser *parse_v = single('V', total);
+  struct parser *parse_i = or(try(pair('I', 'X', total)),
+                      try(pair('I', 'V', total)),
+                      single('I', total));
+  return and(parse_m, parse_d, parse_c, parse_l, parse_x,
               parse_v, parse_i, eof);
 }
 
@@ -332,10 +337,10 @@ capture_string(char *capture, void *dest)
   return true;
 }
 
-static parser
+static struct parser *
 delim_parser(char left, char right, char **inner)
 {
-  return and3(ch(left),
+  return and(ch(left),
               exe(until(ch(right)),
                   capture_string,
                   inner),

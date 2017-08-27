@@ -14,7 +14,7 @@
  */
 
 bool
-run(parser p, const char *input, char **output)
+run(struct parser *p, const char *input, char **output)
 {
   struct parse_state state;
   state_create(&state, input);
